@@ -1,0 +1,113 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: hello-app
+  namespace: hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - name: app
+        image: nocquidant/go-hello
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8484
+        env:
+        - name: HELLO_NAME
+          value: hello-svc
+        - name: HELLO_PORT
+          value: "8484"
+        - name: HELLO_REMOTE
+          value: hello-back-svc:8485/hello
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8484
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          periodSeconds: 5
+          failureThreshold: 1
+        resources:
+          limits:
+            memory: 100Mi
+            cpu: 200m
+          requests:
+            memory: 80Mi
+            cpu: 100m
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: hello-svc
+  namespace: hello
+spec:
+  selector:
+    app: hello
+  type: NodePort
+  ports:
+  - port: 8484
+    targetPort: 8484
+    protocol: TCP
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: hello-back-app
+  namespace: hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-back
+  template:
+    metadata:
+      labels:
+        app: hello-back
+    spec:
+      containers:
+      - name: app
+        image: nocquidant/go-hello
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8485
+        env:
+        - name: HELLO_NAME
+          value: hello-back-svc
+        - name: HELLO_PORT
+          value: "8485"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8485
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          periodSeconds: 5
+          failureThreshold: 1
+        resources:
+          limits:
+            memory: 100Mi
+            cpu: 200m
+          requests:
+            memory: 50Mi
+            cpu: 100m
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: hello-back-svc
+  namespace: hello
+spec:
+  selector:
+    app: hello-back
+  type: ClusterIP
+  ports:
+  - port: 8485
+    targetPort: 8485
+    protocol: TCP
