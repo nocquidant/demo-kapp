@@ -1,113 +1,128 @@
-kind: Deployment
-apiVersion: apps/v1
+apiVersion: v1
+kind: Service
 metadata:
-  name: hello-app
+  labels:
+    app: front
+    component: frontend
+    domain: demo
+  name: front
+  namespace: hello
+spec:
+  ports:
+  - port: 8484
+    protocol: TCP
+    targetPort: 8484
+  selector:
+    app: front
+    component: frontend
+    domain: demo
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: back
+    component: backend
+    domain: demo
+  name: back
+  namespace: hello
+spec:
+  ports:
+  - port: 8485
+    protocol: TCP
+    targetPort: 8485
+  selector:
+    app: back
+    component: backend
+    domain: demo
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: frontend
+  name: front
   namespace: hello
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hello
+      app: front
+      component: frontend
+      domain: demo
   template:
     metadata:
       labels:
-        app: hello
+        app: front
+        component: frontend
+        domain: demo
     spec:
       containers:
-      - name: app
-        image: nocquidant/go-hello
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8484
-        env:
+      - env:
         - name: HELLO_NAME
-          value: hello-svc
+          value: hello
         - name: HELLO_PORT
           value: "8484"
-        - name: HELLO_REMOTE
+        - name: HELLO_URL
           value: hello-back-svc:8485/hello
+        image: nocquidant/go-hello
         livenessProbe:
           httpGet:
             path: /health
             port: 8484
-          initialDelaySeconds: 5
-          timeoutSeconds: 2
-          periodSeconds: 5
-          failureThreshold: 1
+        name: front
+        ports:
+        - containerPort: 8484
         resources:
           limits:
-            memory: 100Mi
             cpu: 200m
+            memory: 100Mi
           requests:
-            memory: 80Mi
-            cpu: 100m
+            cpu: 200m
+            memory: 50Mi
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: hello-svc
-  namespace: hello
-spec:
-  selector:
-    app: hello
-  type: NodePort
-  ports:
-  - port: 8484
-    targetPort: 8484
-    protocol: TCP
----
-kind: Deployment
 apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: hello-back-app
+  labels:
+    component: backend
+  name: back
   namespace: hello
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hello-back
+      app: back
+      component: backend
+      domain: demo
   template:
     metadata:
       labels:
-        app: hello-back
+        app: back
+        component: backend
+        domain: demo
     spec:
       containers:
-      - name: app
-        image: nocquidant/go-hello
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8485
-        env:
+      - env:
         - name: HELLO_NAME
-          value: hello-back-svc
+          value: hello-back
         - name: HELLO_PORT
           value: "8485"
+        image: nocquidant/go-hello
         livenessProbe:
           httpGet:
             path: /health
             port: 8485
-          initialDelaySeconds: 5
-          timeoutSeconds: 2
-          periodSeconds: 5
-          failureThreshold: 1
+        name: back
+        ports:
+        - containerPort: 8485
         resources:
           limits:
-            memory: 100Mi
             cpu: 200m
+            memory: 100Mi
           requests:
-            memory: 50Mi
             cpu: 100m
----
-kind: Service
-apiVersion: v1
-metadata:
-  name: hello-back-svc
-  namespace: hello
-spec:
-  selector:
-    app: hello-back
-  type: ClusterIP
-  ports:
-  - port: 8485
-    targetPort: 8485
-    protocol: TCP
+            memory: 50Mi
+
