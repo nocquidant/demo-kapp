@@ -4,6 +4,10 @@ metadata:
   name: whoami
   namespace: hello
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whoami
   template:
     metadata:
       labels:
